@@ -1,24 +1,20 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto';
+import { SigninDto, SignupDto } from './dto';
 
 @Controller('auth')
 @ApiTags('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private prismaService: PrismaService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
-  @Post('register')
-  register(@Body() authDto: AuthDto) {
-    return this.authService.register(authDto);
+  @Post('signup')
+  signup(@Body() dto: SignupDto) {
+    return this.authService.signup(dto);
   }
 
-  @Post('login')
-  login() {
-    return this.authService.login();
+  @Post('signin')
+  signin(@Body() dto: SigninDto) {
+    return this.authService.signin(dto);
   }
 }
