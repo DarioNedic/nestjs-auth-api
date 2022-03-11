@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from 'src/prisma';
+import { JwtPayload } from '../types/jwt-payload.type';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
@@ -18,13 +20,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: { sub: number; email: string }) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id: payload.sub
-      }
-    });
-    delete user.hash;
-    return user;
+  validate(req: Request, payload: JwtPayload) {
+    const refreshToken = req?.get('authorization').replace('Bearer', '').trim();
+    if (!refreshToken) throw new ForbiddenException('Refresh token malformed!');
+
+    return {
+      ...payload,
+      refreshToken
+    };
   }
 }

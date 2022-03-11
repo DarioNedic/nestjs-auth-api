@@ -7,7 +7,7 @@ import {
   UseGuards
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { GetCurrentUser } from 'src/common/decorators';
+import { GetCurrentUser, Public } from 'src/common/decorators';
 import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.decorator copy';
 import { AccessTokenGuard, RefreshTokenGuard } from '../common/guards';
 import { AuthService } from './auth.service';
@@ -18,12 +18,16 @@ import { SigninDto, SignupDto } from './dto';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Public()
   @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
 
+  @Public()
   @Post('signin')
+  @HttpCode(HttpStatus.OK)
   signin(@Body() dto: SigninDto) {
     return this.authService.signin(dto);
   }
@@ -35,6 +39,7 @@ export class AuthController {
     return this.authService.logout(userId);
   }
 
+  @Public()
   @Post('refresh')
   @UseGuards(RefreshTokenGuard)
   @HttpCode(HttpStatus.OK)
