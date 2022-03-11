@@ -17,4 +17,16 @@ export class AuthController {
   signin(@Body() dto: SigninDto) {
     return this.authService.signin(dto);
   }
+
+  // @Post('logout')
+  // @HttpCode(HttpStatus.OK)
+  // logout(@GetCurrentUserId() userId: number): Promise<boolean> {
+  //   return this.authService.logout(userId);
+  // }
+
+  // @Post('refresh')
+  // @HttpCode(HttpStatus.OK)
+  // refreshTokens(@Body() dto: SigninDto) {
+  //   return this.authService.refreshTokens(dto);
+  // }
 }
