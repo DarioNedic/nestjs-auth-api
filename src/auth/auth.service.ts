@@ -6,12 +6,13 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import * as argon from 'argon2';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SigninDto, SignupDto } from './dto';
+import { Token } from './types';
 @Injectable()
 export class AuthService {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
-    private jwt: JwtService,
+    private jwt: JwtService
   ) {}
 
   async signup(dto: SignupDto) {
@@ -26,8 +27,8 @@ export class AuthService {
           hash,
           username: dto.username,
           firstName: dto.firstName,
-          lastName: dto.lastName,
-        },
+          lastName: dto.lastName
+        }
       });
 
       // return the saved user
@@ -42,12 +43,12 @@ export class AuthService {
     }
   }
 
-  async signin(dto: SigninDto) {
+  async signin(dto: SigninDto): Promise<Token> {
     // find the user by email
     const user = await this.prisma.user.findUnique({
       where: {
-        email: dto.email,
-      },
+        email: dto.email
+      }
     });
 
     // if user does not exist throw ex
@@ -57,26 +58,79 @@ export class AuthService {
     const passwordMatch = await argon.verify(user.hash, dto.password);
     if (!passwordMatch) throw new ForbiddenException('Credentials incorrect!');
 
-    return this.signToken(user);
+    const tokens = await this.getTokens(user);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    return tokens;
   }
 
-  async signToken(user: User): Promise<{ access_token: string }> {
+  async refreshTokens(userId: number, rt: string): Promise<Token> {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId
+      }
+    });
+
+    if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied!');
+
+    const rtMatches = await argon.verify(user.hashedRt, rt);
+    if (!rtMatches) throw new ForbiddenException('Access Denied!');
+
+    const tokens = await this.getTokens(user);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    return tokens;
+  }
+
+  async logout(userId: number) {
+    await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        hashedRt: {
+          not: null
+        }
+      },
+      data: {
+        hashedRt: null
+      }
+    });
+  }
+
+  async getTokens(user: User): Promise<Token> {
     const payload = {
       sub: user.id,
       email: user.email,
       username: user.username,
       firstName: user.firstName,
-      lastName: user.lastName,
+      lastName: user.lastName
     };
-    const secret = this.config.get('JWT_SECRET');
-
-    const token = await this.jwt.signAsync(payload, {
-      expiresIn: '15m',
-      secret: secret,
+    // creating access token
+    const at = await this.jwt.signAsync(payload, {
+      expiresIn: this.config.get('ACCESS_TOKEN_EXPIRATION'),
+      secret: this.config.get('ACCESS_TOKEN_SECRET')
     });
+    // creating refresh token
+    const rt = await this.jwt.signAsync(payload, {
+      expiresIn: this.config.get('REFRESH_TOKEN_EXPIRATION'),
+      secret: this.config.get('REFRESH_TOKEN_SECRET')
+    });
+    //a new entry in token db
 
     return {
-      access_token: token,
+      access_token: at,
+      refresh_token: rt
     };
+  }
+
+  async updateRefreshToken(userId: number, rt: string): Promise<void> {
+    const hash = await argon.hash(rt);
+    await this.prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: {
+        hashedRt: hash
+      }
+    });
   }
 }

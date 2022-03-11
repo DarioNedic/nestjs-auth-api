@@ -1,5 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { GetCurrentUser } from 'src/common/decorators';
+import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.decorator copy';
+import { AccessTokenGuard, RefreshTokenGuard } from '../common/guards';
 import { AuthService } from './auth.service';
 import { SigninDto, SignupDto } from './dto';
 
@@ -18,15 +28,20 @@ export class AuthController {
     return this.authService.signin(dto);
   }
 
-  // @Post('logout')
-  // @HttpCode(HttpStatus.OK)
-  // logout(@GetCurrentUserId() userId: number): Promise<boolean> {
-  //   return this.authService.logout(userId);
-  // }
+  @Post('logout')
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  logout(@GetCurrentUserId() userId: number): Promise<void> {
+    return this.authService.logout(userId);
+  }
 
-  // @Post('refresh')
-  // @HttpCode(HttpStatus.OK)
-  // refreshTokens(@Body() dto: SigninDto) {
-  //   return this.authService.refreshTokens(dto);
-  // }
+  @Post('refresh')
+  @UseGuards(RefreshTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  refreshTokens(
+    @GetCurrentUserId() userId: number,
+    @GetCurrentUser('refreshToken') refreshToken: string
+  ) {
+    return this.authService.refreshTokens(userId, refreshToken);
+  }
 }

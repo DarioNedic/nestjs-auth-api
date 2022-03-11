@@ -8,13 +8,13 @@ import {
   Post,
   UseGuards
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guard';
+import { AccessTokenGuard } from 'src/common/guards';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserService } from './user.service';
 
 @Controller('user')
-@UseGuards(JwtGuard)
+@UseGuards(AccessTokenGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
