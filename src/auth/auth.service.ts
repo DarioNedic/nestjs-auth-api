@@ -16,12 +16,12 @@ export class AuthService {
   ) {}
 
   async signup(dto: SignupDto) {
-    try {
-      // generate the password hash
-      const hash = await argon.hash(dto.password);
+    // generate the password hash
+    const hash = await argon.hash(dto.password);
 
-      // save the new user in db
-      const user = await this.prisma.user.create({
+    // save the new user in db
+    const user = await this.prisma.user
+      .create({
         data: {
           email: dto.email,
           hash,
@@ -29,18 +29,21 @@ export class AuthService {
           firstName: dto.firstName,
           lastName: dto.lastName
         }
+      })
+      .catch((error) => {
+        if (error instanceof PrismaClientKnownRequestError) {
+          if (error.code === 'P2002') {
+            throw new ForbiddenException('Credentials taken');
+          }
+        }
+        throw error;
       });
 
-      // return the saved user
-      delete user.hash;
-      return user;
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ForbiddenException('Credentials taken');
-        }
-      }
-    }
+    // return token to user
+    const tokens = await this.getTokens(user);
+    await this.updateRefreshToken(user.id, tokens.refresh_token);
+
+    return tokens;
   }
 
   async signin(dto: SigninDto): Promise<Token> {
@@ -73,6 +76,7 @@ export class AuthService {
 
     if (!user || !user.hashedRt) throw new ForbiddenException('Access Denied!');
 
+    console.log('refreshTokens  -  user.hashedRt, rt', user.hashedRt, rt);
     const rtMatches = await argon.verify(user.hashedRt, rt);
     if (!rtMatches) throw new ForbiddenException('Access Denied!');
 

@@ -12,6 +12,7 @@ import { GetCurrentUserId } from 'src/common/decorators/get-current-user-id.deco
 import { AccessTokenGuard, RefreshTokenGuard } from '../common/guards';
 import { AuthService } from './auth.service';
 import { SigninDto, SignupDto } from './dto';
+import { Token } from './types';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -21,14 +22,14 @@ export class AuthController {
   @Public()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  signup(@Body() dto: SignupDto) {
+  signup(@Body() dto: SignupDto): Promise<Token> {
     return this.authService.signup(dto);
   }
 
   @Public()
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  signin(@Body() dto: SigninDto) {
+  signin(@Body() dto: SigninDto): Promise<Token> {
     return this.authService.signin(dto);
   }
 
@@ -36,6 +37,7 @@ export class AuthController {
   @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   logout(@GetCurrentUserId() userId: number): Promise<void> {
+    console.log({ userId });
     return this.authService.logout(userId);
   }
 
@@ -46,7 +48,7 @@ export class AuthController {
   refreshTokens(
     @GetCurrentUserId() userId: number,
     @GetCurrentUser('refreshToken') refreshToken: string
-  ) {
+  ): Promise<Token> {
     return this.authService.refreshTokens(userId, refreshToken);
   }
 }

@@ -7,8 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('POS API')
-    .setDescription('The Point-Of-Sale API description')
+    .setTitle('NestJS Auth API')
+    .setDescription('NestJS Auth API description')
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, config);
